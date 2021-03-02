@@ -3,8 +3,6 @@ package cn.hutool.core.util;
 import cn.hutool.core.lang.PatternPool;
 import cn.hutool.core.lang.Validator;
 
-import java.util.regex.Pattern;
-
 
 /**
  * 手机号工具类
@@ -13,11 +11,6 @@ import java.util.regex.Pattern;
  * @since 5.3.11
  */
 public class PhoneUtil {
-
-	/**
-	 * 座机号码
-	 */
-	private static final Pattern TEL = Pattern.compile("0\\d{2,3}-[1-9]\\d{6,7}");
 
 	/**
 	 * 验证是否为手机号码（中国）
@@ -38,7 +31,7 @@ public class PhoneUtil {
 	 * @since 5.3.11
 	 */
 	public static boolean isTel(CharSequence value) {
-		return Validator.isMatchRegex(TEL, value);
+		return Validator.isMatchRegex(PatternPool.TEL, value);
 	}
 
 	/**

@@ -1,7 +1,7 @@
 package cn.hutool.poi.excel.sax;
 
-import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.poi.excel.sax.handler.RowHandler;
@@ -117,12 +117,12 @@ public class Excel03SaxReader implements HSSFListener, ExcelSaxReader<Excel03Sax
 	 * 读取
 	 *
 	 * @param fs  {@link POIFSFileSystem}
-	 * @param id sheet序号
+	 * @param id sheet序号，从0开始
 	 * @return this
 	 * @throws POIException IO异常包装
 	 */
 	public Excel03SaxReader read(POIFSFileSystem fs, String id) throws POIException {
-		this.rid = Integer.parseInt(id);
+		this.rid = getSheetIndex(id);
 
 		formatListener = new FormatTrackingHSSFListener(new MissingRecordAwareHSSFListener(this));
 		final HSSFRequest request = new HSSFRequest();
@@ -269,17 +269,17 @@ public class Excel03SaxReader implements HSSFListener, ExcelSaxReader<Excel03Sax
 				break;
 			case FormulaRecord.sid:
 				// 公式类型
-				FormulaRecord formulaRec = (FormulaRecord) record;
+				final FormulaRecord formulaRec = (FormulaRecord) record;
 				if (isOutputFormulaValues) {
 					if (Double.isNaN(formulaRec.getValue())) {
 						// Formula result is a string
 						// This is stored in the next record
 						isOutputNextStringRecord = true;
 					} else {
-						value = formatListener.formatNumberDateCell(formulaRec);
+						value = ExcelSaxUtil.getNumberOrDateValue(formulaRec, formulaRec.getValue(), this.formatListener);
 					}
 				} else {
-					value = StrUtil.wrap(HSSFFormulaParser.toFormulaString(stubWorkbook, formulaRec.getParsedExpression()), "\"");
+					value = HSSFFormulaParser.toFormulaString(stubWorkbook, formulaRec.getParsedExpression());
 				}
 				addToRowCellList(formulaRec, value);
 				break;
@@ -306,21 +306,7 @@ public class Excel03SaxReader implements HSSFListener, ExcelSaxReader<Excel03Sax
 				break;
 			case NumberRecord.sid: // 数字类型
 				final NumberRecord numrec = (NumberRecord) record;
-				final String formatString = formatListener.getFormatString(numrec);
-				if(false == StrUtil.contains(formatString, '%') &&
-						false == "General".equalsIgnoreCase(formatString)){
-					// 可能为日期格式
-					value = DateUtil.date(org.apache.poi.ss.usermodel.DateUtil.getJavaDate(numrec.getValue()));
-				} else {
-					final double doubleValue = numrec.getValue();
-					final long longPart = (long) doubleValue;
-					// 对于无小数部分的数字类型，转为Long，否则保留原数字
-					if (((double) longPart) == doubleValue) {
-						value = longPart;
-					} else {
-						value = doubleValue;
-					}
-				}
+				value = ExcelSaxUtil.getNumberOrDateValue(numrec, numrec.getValue(), this.formatListener);
 				// 向容器加入列值
 				addToRowCellList(numrec, value);
 				break;
@@ -355,6 +341,33 @@ public class Excel03SaxReader implements HSSFListener, ExcelSaxReader<Excel03Sax
 	 */
 	private boolean isProcessCurrentSheet() {
 		return this.rid < 0 || this.curRid == this.rid;
+	}
+
+	/**
+	 * 获取sheet索引，从0开始
+	 * <ul>
+	 *     <li>传入'rId'开头，直接去除rId前缀</li>
+	 *     <li>传入纯数字，表示sheetIndex，直接转换为rid</li>
+	 * </ul>
+	 *
+	 * @param idOrRidOrSheetName Excel中的sheet id或者rid编号或sheet名称，从0开始，rid必须加rId前缀，例如rId0，如果为-1处理所有编号的sheet
+	 * @return sheet索引，从0开始
+	 * @since 5.5.5
+	 */
+	private int getSheetIndex(String idOrRidOrSheetName) {
+		Assert.notBlank(idOrRidOrSheetName, "id or rid or sheetName must be not blank!");
+
+		// rid直接处理
+		if (StrUtil.startWithIgnoreCase(idOrRidOrSheetName, RID_PREFIX)) {
+			return Integer.parseInt(StrUtil.removePrefixIgnoreCase(idOrRidOrSheetName, RID_PREFIX));
+		}
+
+		final int sheetIndex;
+		try {
+			return Integer.parseInt(idOrRidOrSheetName);
+		} catch (NumberFormatException ignore) {
+			throw new IllegalArgumentException("Invalid sheet id: " + idOrRidOrSheetName);
+		}
 	}
 	// ---------------------------------------------------------------------------------------------- Private method end
 }
