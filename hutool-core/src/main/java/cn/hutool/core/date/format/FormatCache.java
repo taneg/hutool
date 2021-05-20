@@ -1,5 +1,8 @@
 package cn.hutool.core.date.format;
 
+import cn.hutool.core.lang.Assert;
+import cn.hutool.core.lang.Tuple;
+
 import java.text.DateFormat;
 import java.text.Format;
 import java.text.SimpleDateFormat;
@@ -8,13 +11,10 @@ import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.lang.Tuple;
-
 /**
  * 日期格式化器缓存<br>
  * Thanks to Apache Commons Lang 3.5
- * 
+ *
  * @since 2.16.2
  */
 abstract class FormatCache<F extends Format> {
@@ -38,12 +38,12 @@ abstract class FormatCache<F extends Format> {
 
 	/**
 	 * 使用 pattern, time zone and locale 获得对应的 格式化器
-	 * 
+	 *
 	 * @param pattern 非空日期格式，使用与 {@link java.text.SimpleDateFormat}相同格式
 	 * @param timeZone 时区，默认当前时区
 	 * @param locale 地区，默认使用当前地区
 	 * @return 格式化器
-	 * @throws IllegalArgumentException pattern 无效或<code>null</code>
+	 * @throws IllegalArgumentException pattern 无效或{@code null}
 	 */
 	public F getInstance(final String pattern, TimeZone timeZone, Locale locale) {
 		Assert.notBlank(pattern, "pattern must not be blank") ;
@@ -69,12 +69,12 @@ abstract class FormatCache<F extends Format> {
 
 	/**
 	 * 创建格式化器
-	 * 
+	 *
 	 * @param pattern 非空日期格式，使用与 {@link java.text.SimpleDateFormat}相同格式
 	 * @param timeZone 时区，默认当前时区
 	 * @param locale 地区，默认使用当前地区
 	 * @return 格式化器
-	 * @throws IllegalArgumentException pattern 无效或<code>null</code>
+	 * @throws IllegalArgumentException pattern 无效或{@code null}
 	 */
 	abstract protected F createInstance(String pattern, TimeZone timeZone, Locale locale);
 
@@ -82,7 +82,7 @@ abstract class FormatCache<F extends Format> {
 	 * <p>
 	 * Gets a date/time formatter instance using the specified style, time zone and locale.
 	 * </p>
-	 * 
+	 *
 	 * @param dateStyle date style: FULL, LONG, MEDIUM, or SHORT, null indicates no date in format
 	 * @param timeStyle time style: FULL, LONG, MEDIUM, or SHORT, null indicates no time in format
 	 * @param timeZone optional time zone, overrides time zone of formatted date, null means use default Locale
@@ -103,7 +103,7 @@ abstract class FormatCache<F extends Format> {
 	 * <p>
 	 * Gets a date/time formatter instance using the specified style, time zone and locale.
 	 * </p>
-	 * 
+	 *
 	 * @param dateStyle date style: FULL, LONG, MEDIUM, or SHORT
 	 * @param timeStyle time style: FULL, LONG, MEDIUM, or SHORT
 	 * @param timeZone optional time zone, overrides time zone of formatted date, null means use default Locale
@@ -120,7 +120,7 @@ abstract class FormatCache<F extends Format> {
 	 * <p>
 	 * Gets a date formatter instance using the specified style, time zone and locale.
 	 * </p>
-	 * 
+	 *
 	 * @param dateStyle date style: FULL, LONG, MEDIUM, or SHORT
 	 * @param timeZone optional time zone, overrides time zone of formatted date, null means use default Locale
 	 * @param locale optional locale, overrides system locale
@@ -136,7 +136,7 @@ abstract class FormatCache<F extends Format> {
 	 * <p>
 	 * Gets a time formatter instance using the specified style, time zone and locale.
 	 * </p>
-	 * 
+	 *
 	 * @param timeStyle time style: FULL, LONG, MEDIUM, or SHORT
 	 * @param timeZone optional time zone, overrides time zone of formatted date, null means use default Locale
 	 * @param locale optional locale, overrides system locale
@@ -152,7 +152,7 @@ abstract class FormatCache<F extends Format> {
 	 * <p>
 	 * Gets a date/time format for the specified styles and locale.
 	 * </p>
-	 * 
+	 *
 	 * @param dateStyle date style: FULL, LONG, MEDIUM, or SHORT, null indicates no date in format
 	 * @param timeStyle time style: FULL, LONG, MEDIUM, or SHORT, null indicates no time in format
 	 * @param locale The non-null locale of the desired format

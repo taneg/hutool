@@ -50,7 +50,9 @@ final class InternalJSONUtil {
 		} else if (value instanceof Iterable || value instanceof Iterator || value.getClass().isArray()) {
 			new JSONArray(value).write(writer, indentFactor, indent);
 		} else if (value instanceof Number) {
-			writer.write(NumberUtil.toStr((Number) value));
+			// since 5.6.2可配置是否去除末尾多余0，例如如果为true,5.0返回5
+			final boolean isStripTrailingZeros = null == config || config.isStripTrailingZeros();
+			writer.write(NumberUtil.toStr((Number) value, isStripTrailingZeros));
 		} else if (value instanceof Date || value instanceof Calendar || value instanceof TemporalAccessor) {
 			final String format = (null == config) ? null : config.getDateFormat();
 			writer.write(formatDate(value, format));
@@ -74,7 +76,7 @@ final class InternalJSONUtil {
 	 * 缩进，使用空格符
 	 *
 	 * @param writer writer
-	 * @param indent 随进空格数
+	 * @param indent 缩进空格数
 	 * @throws IOException IO异常
 	 */
 	protected static void indent(Writer writer, int indent) throws IOException {
@@ -240,17 +242,20 @@ final class InternalJSONUtil {
 	 */
 	private static String formatDate(Object dateObj, String format) {
 		if (StrUtil.isNotBlank(format)) {
+			final String dateStr;
 			if(dateObj instanceof TemporalAccessor){
-				return TemporalAccessorUtil.format((TemporalAccessor) dateObj, format);
+				dateStr = TemporalAccessorUtil.format((TemporalAccessor) dateObj, format);
+			} else{
+				dateStr = DateUtil.format(Convert.toDate(dateObj), format);
 			}
 			//用户定义了日期格式
-			return JSONUtil.quote(DateUtil.format(Convert.toDate(dateObj), format));
+			return JSONUtil.quote(dateStr);
 		}
 
 		//默认使用时间戳
 		long timeMillis;
 		if (dateObj instanceof TemporalAccessor) {
-			timeMillis = DateUtil.toInstant((TemporalAccessor) dateObj).toEpochMilli();
+			timeMillis = TemporalAccessorUtil.toEpochMilli((TemporalAccessor) dateObj);
 		} else if (dateObj instanceof Date) {
 			timeMillis = ((Date) dateObj).getTime();
 		} else if (dateObj instanceof Calendar) {

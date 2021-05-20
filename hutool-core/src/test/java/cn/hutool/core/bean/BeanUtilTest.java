@@ -4,10 +4,14 @@ import cn.hutool.core.annotation.Alias;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.bean.copier.ValueProvider;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.map.MapUtil;
+import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.core.util.StrUtil;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -16,8 +20,12 @@ import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -76,7 +84,7 @@ public class BeanUtilTest {
 	}
 
 	@Test
-	public void toBeanTest(){
+	public void toBeanTest() {
 		SubPerson person = new SubPerson();
 		person.setAge(14);
 		person.setOpenid("11213232");
@@ -95,7 +103,7 @@ public class BeanUtilTest {
 	 * 忽略转换错误测试
 	 */
 	@Test
-	public void toBeanIgnoreErrorTest(){
+	public void toBeanIgnoreErrorTest() {
 		HashMap<String, Object> map = CollUtil.newHashMap();
 		map.put("name", "Joe");
 		// 错误的类型，此处忽略
@@ -196,6 +204,8 @@ public class BeanUtilTest {
 		person.setName("测试A11");
 		person.setSubName("sub名字");
 		person.setSlow(true);
+		person.setBooleana(true);
+		person.setBooleanb(true);
 
 		Map<String, Object> map = BeanUtil.beanToMap(person);
 		Assert.assertEquals("sub名字", map.get("aliasSubName"));
@@ -206,9 +216,13 @@ public class BeanUtilTest {
 		Map<String, Object> map = MapUtil.newHashMap();
 		map.put("aliasSubName", "sub名字");
 		map.put("slow", true);
+		map.put("is_booleana", "1");
+		map.put("is_booleanb", true);
 
 		final SubPersonWithAlias subPersonWithAlias = BeanUtil.toBean(map, SubPersonWithAlias.class);
 		Assert.assertEquals("sub名字", subPersonWithAlias.getSubName());
+		Assert.assertTrue(subPersonWithAlias.isBooleana());
+		Assert.assertEquals(true, subPersonWithAlias.getBooleanb());
 	}
 
 	@Test
@@ -355,11 +369,14 @@ public class BeanUtilTest {
 
 	@Getter
 	@Setter
+	@ToString
 	public static class SubPersonWithAlias extends Person {
 		// boolean参数值非isXXX形式
 		@Alias("aliasSubName")
 		private String subName;
 		private Boolean slow;
+		private boolean booleana;
+		private Boolean booleanb;
 	}
 
 	@Getter
@@ -372,7 +389,7 @@ public class BeanUtilTest {
 	@Getter
 	@Setter
 	public static class Person {
-		private  String name;
+		private String name;
 		private int age;
 		private String openid;
 	}
@@ -384,6 +401,7 @@ public class BeanUtilTest {
 		private int age;
 		private String openid;
 	}
+
 	public static class Person2 {
 
 		public Person2(String name, int age, String openid) {
@@ -445,13 +463,25 @@ public class BeanUtilTest {
 		Assert.assertEquals(info.getBookID(), entity.getBookId());
 		Assert.assertEquals(info.getCode(), entity.getCode2());
 	}
-	
+
 	@Test
-	public void copyBeanTest(){
+	public void copyBeanTest() {
 		Food info = new Food();
 		info.setBookID("0");
 		info.setCode("123");
 		Food newFood = BeanUtil.copyProperties(info, Food.class, "code");
+		Assert.assertEquals(info.getBookID(), newFood.getBookID());
+		Assert.assertNull(newFood.getCode());
+	}
+
+	@Test
+	public void copyBeanPropertiesFilterTest() {
+		Food info = new Food();
+		info.setBookID("0");
+		info.setCode("");
+		Food newFood = new Food();
+		CopyOptions copyOptions = CopyOptions.create().setPropertiesFilter((f, v) -> !(v instanceof CharSequence) || StrUtil.isNotBlank(v.toString()));
+		BeanUtil.copyProperties(info, newFood, copyOptions);
 		Assert.assertEquals(info.getBookID(), newFood.getBookID());
 		Assert.assertNull(newFood.getCode());
 	}
@@ -473,14 +503,14 @@ public class BeanUtilTest {
 	}
 
 	@Test
-	public void setPropertiesTest(){
+	public void setPropertiesTest() {
 		Map<String, Object> resultMap = MapUtil.newHashMap();
 		BeanUtil.setProperty(resultMap, "codeList[0].name", "张三");
 		Assert.assertEquals("{codeList={0={name=张三}}}", resultMap.toString());
 	}
 
 	@Test
-	public void beanCopyTest(){
+	public void beanCopyTest() {
 		final Station station = new Station();
 		station.setId(123456L);
 
@@ -488,6 +518,29 @@ public class BeanUtilTest {
 
 		BeanUtil.copyProperties(station, station2);
 		Assert.assertEquals(new Long(123456L), station2.getId());
+	}
+
+	@Test
+	public void copyListTest() {
+		Student student = new Student();
+		student.setName("张三");
+		student.setAge(123);
+		student.setNo(3158L);
+
+		Student student2 = new Student();
+		student.setName("李四");
+		student.setAge(125);
+		student.setNo(8848L);
+
+		List<Student> studentList = ListUtil.of(student, student2);
+		List<Person> people = BeanUtil.copyToList(studentList, Person.class);
+
+		Assert.assertEquals(studentList.size(), people.size());
+		for (int i = 0; i < studentList.size(); i++) {
+			Assert.assertEquals(studentList.get(i).getName(), people.get(i).getName());
+			Assert.assertEquals(studentList.get(i).getAge(), people.get(i).getAge());
+		}
+
 	}
 
 	public static class Station extends Tree<Station, Long> {
@@ -499,7 +552,76 @@ public class BeanUtilTest {
 	}
 
 	@Data
-	public static class Entity<T>{
+	public static class Entity<T> {
 		private T id;
+	}
+
+	@Test
+	public void toMapTest() {
+		// 测试转map的时候返回key
+		String name = null;
+		PrivilegeIClassification a = new PrivilegeIClassification();
+		a.setId("1");
+		a.setName("2");
+		a.setCode("3");
+		a.setCreateTime(new Date());
+		a.setSortOrder(9L);
+
+		Map<String, Object> f = BeanUtil.beanToMap(
+				a,
+				new LinkedHashMap<>(),
+				false,
+				key -> Arrays.asList("id", "name", "code", "sortOrder").contains(key) ? key : null);
+		Assert.assertFalse(f.containsKey(null));
+	}
+
+	@Data
+	public static class PrivilegeIClassification implements Serializable {
+		private static final long serialVersionUID = 1L;
+
+		private String id;
+		private String name;
+		private String code;
+		private Long rowStatus;
+		private Long sortOrder;
+		private Date createTime;
+	}
+
+	@Test
+	public void getFieldValue() {
+		TestPojo testPojo = new TestPojo();
+		testPojo.setName("名字");
+
+		TestPojo2 testPojo2 = new TestPojo2();
+		testPojo2.setAge(2);
+		TestPojo2 testPojo3 = new TestPojo2();
+		testPojo3.setAge(3);
+
+
+		testPojo.setTestPojo2List(new TestPojo2[]{testPojo2, testPojo3});
+
+		BeanPath beanPath = BeanPath.create("testPojo2List.age");
+		Object o = beanPath.get(testPojo);
+
+		Assert.assertEquals(Integer.valueOf(2), ArrayUtil.get(o, 0));
+		Assert.assertEquals(Integer.valueOf(3), ArrayUtil.get(o, 1));
+	}
+
+	@Data
+	public static class TestPojo {
+		private String name;
+		private TestPojo2[] testPojo2List;
+	}
+
+	@Data
+	public static class TestPojo2 {
+		private int age;
+	}
+
+	@Data
+	public static class Student {
+		String name;
+		int age;
+		Long no;
 	}
 }

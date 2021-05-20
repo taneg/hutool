@@ -54,8 +54,12 @@ public class SoapClient extends HttpBase<SoapClient> {
 
 	/**
 	 * XML消息体的Content-Type
+	 * soap1.1 : text/xml
+	 * soap1.2 : application/soap+xml
+	 * soap1.1与soap1.2区别:  https://www.cnblogs.com/qlqwjy/p/7577147.html
 	 */
-	private static final String TEXT_XML_CONTENT_TYPE = "text/xml;charset=";
+	private static final String CONTENT_TYPE_SOAP11_TEXT_XML = "text/xml;charset=";
+	private static final String CONTENT_TYPE_SOAP12_SOAP_XML = "application/soap+xml;charset=";
 
 	/**
 	 * 请求的URL地址
@@ -87,6 +91,12 @@ public class SoapClient extends HttpBase<SoapClient> {
 	 * 应用于方法上的命名空间URI
 	 */
 	private final String namespaceURI;
+	/**
+	 * Soap协议
+	 * soap1.1 : text/xml
+	 * soap1.2 : application/soap+xml
+	 */
+	private final SoapProtocol protocol;
 
 	/**
 	 * 创建SOAP客户端，默认使用soap1.1版本协议
@@ -152,6 +162,7 @@ public class SoapClient extends HttpBase<SoapClient> {
 	public SoapClient(String url, SoapProtocol protocol, String namespaceURI) {
 		this.url = url;
 		this.namespaceURI = namespaceURI;
+		this.protocol = protocol;
 		init(protocol);
 	}
 
@@ -325,11 +336,36 @@ public class SoapClient extends HttpBase<SoapClient> {
 	/**
 	 * 增加SOAP头信息，方法返回{@link SOAPHeaderElement}可以设置具体属性和子节点
 	 *
+	 * @param localName 头节点名称
+	 * @return {@link SOAPHeaderElement}
+	 * @since 5.4.7
+	 */
+	public SOAPHeaderElement addSOAPHeader(String localName) {
+		return addSOAPHeader(new QName(localName));
+	}
+
+	/**
+	 * 增加SOAP头信息，方法返回{@link SOAPHeaderElement}可以设置具体属性和子节点
+	 *
+	 * @param localName 头节点名称
+	 * @param value     头节点的值
+	 * @return {@link SOAPHeaderElement}
+	 * @since 5.4.7
+	 */
+	public SOAPHeaderElement addSOAPHeader(String localName, String value) {
+		final SOAPHeaderElement soapHeaderElement = addSOAPHeader(localName);
+		soapHeaderElement.setTextContent(value);
+		return soapHeaderElement;
+	}
+
+	/**
+	 * 增加SOAP头信息，方法返回{@link SOAPHeaderElement}可以设置具体属性和子节点
+	 *
 	 * @param name 头节点名称
 	 * @return {@link SOAPHeaderElement}
 	 * @since 5.4.4
 	 */
-	public SOAPHeaderElement addSOAPHeader(QName name){
+	public SOAPHeaderElement addSOAPHeader(QName name) {
 		SOAPHeaderElement ele;
 		try {
 			ele = this.message.getSOAPHeader().addHeaderElement(name);
@@ -625,7 +661,14 @@ public class SoapClient extends HttpBase<SoapClient> {
 	 * @return 请求的Content-Type
 	 */
 	private String getXmlContentType() {
-		return TEXT_XML_CONTENT_TYPE.concat(this.charset.toString());
+		switch (this.protocol){
+			case SOAP_1_1:
+				return CONTENT_TYPE_SOAP11_TEXT_XML.concat(this.charset.toString());
+			case SOAP_1_2:
+				return CONTENT_TYPE_SOAP12_SOAP_XML.concat(this.charset.toString());
+			default:
+				throw new SoapRuntimeException("Unsupported protocol: {}", this.protocol);
+		}
 	}
 
 	/**

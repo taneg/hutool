@@ -260,7 +260,8 @@ public class JSONObject implements JSON, JSONGetter<String>, Map<String, Object>
 	}
 
 	/**
-	 * 设置转为字符串时的日期格式，默认为时间戳（null值）
+	 * 设置转为字符串时的日期格式，默认为时间戳（null值）<br>
+	 * 此方法设置的日期格式仅对转换为JSON字符串有效，对解析JSON为bean无效。
 	 *
 	 * @param format 格式，null表示使用时间戳
 	 * @return this
@@ -340,7 +341,7 @@ public class JSONObject implements JSON, JSONGetter<String>, Map<String, Object>
 	}
 
 	/**
-	 * PUT 键值对到JSONObject中，在忽略null模式下，如果值为<code>null</code>，将此键移除
+	 * PUT 键值对到JSONObject中，在忽略null模式下，如果值为{@code null}，将此键移除
 	 *
 	 * @param key   键
 	 * @param value 值对象. 可以是以下类型: Boolean, Double, Integer, JSONArray, JSONObject, Long, String, or the JSONNull.NULL.
@@ -355,7 +356,7 @@ public class JSONObject implements JSON, JSONGetter<String>, Map<String, Object>
 	}
 
 	/**
-	 * 设置键值对到JSONObject中，在忽略null模式下，如果值为<code>null</code>，将此键移除
+	 * 设置键值对到JSONObject中，在忽略null模式下，如果值为{@code null}，将此键移除
 	 *
 	 * @param key   键
 	 * @param value 值对象. 可以是以下类型: Boolean, Double, Integer, JSONArray, JSONObject, Long, String, or the JSONNull.NULL.
@@ -419,23 +420,23 @@ public class JSONObject implements JSON, JSONGetter<String>, Map<String, Object>
 	}
 
 	/**
-	 * 积累值。类似于put，当key对应value已经存在时，与value组成新的JSONArray. <br>
+	 * 积累值。类似于set，当key对应value已经存在时，与value组成新的JSONArray. <br>
 	 * 如果只有一个值，此值就是value，如果多个值，则是添加到新的JSONArray中
 	 *
 	 * @param key   键
 	 * @param value 被积累的值
 	 * @return this.
-	 * @throws JSONException 如果给定键为<code>null</code>或者键对应的值存在且为非JSONArray
+	 * @throws JSONException 如果给定键为{@code null}或者键对应的值存在且为非JSONArray
 	 */
 	public JSONObject accumulate(String key, Object value) throws JSONException {
 		InternalJSONUtil.testValidity(value);
 		Object object = this.getObj(key);
 		if (object == null) {
-			this.set(key, value instanceof JSONArray ? new JSONArray(this.config).set(value) : value);
+			this.set(key, value);
 		} else if (object instanceof JSONArray) {
 			((JSONArray) object).set(value);
 		} else {
-			this.set(key, new JSONArray(this.config).set(object).set(value));
+			this.set(key, JSONUtil.createArray(this.config).set(object).set(value));
 		}
 		return this;
 	}
@@ -446,7 +447,7 @@ public class JSONObject implements JSON, JSONGetter<String>, Map<String, Object>
 	 * @param key   键
 	 * @param value 值
 	 * @return this.
-	 * @throws JSONException 如果给定键为<code>null</code>或者键对应的值存在且为非JSONArray
+	 * @throws JSONException 如果给定键为{@code null}或者键对应的值存在且为非JSONArray
 	 */
 	public JSONObject append(String key, Object value) throws JSONException {
 		InternalJSONUtil.testValidity(value);
@@ -544,7 +545,7 @@ public class JSONObject implements JSON, JSONGetter<String>, Map<String, Object>
 
 	/**
 	 * 返回JSON字符串<br>
-	 * 如果解析错误，返回<code>null</code>
+	 * 如果解析错误，返回{@code null}
 	 *
 	 * @return JSON字符串
 	 */
@@ -644,11 +645,19 @@ public class JSONObject implements JSON, JSONGetter<String>, Map<String, Object>
 			return;
 		}
 
+		// 自定义序列化
 		final JSONSerializer serializer = GlobalSerializeMapping.getSerializer(source.getClass());
 		if (serializer instanceof JSONObjectSerializer) {
-			// 自定义序列化
 			serializer.serialize(this, source);
-		} else if (source instanceof Map) {
+			return;
+		}
+
+		if(ArrayUtil.isArray(source) || source instanceof JSONArray){
+			// 不支持集合类型转换为JSONObject
+			throw new JSONException("Unsupported type [{}] to JSONObject!", source.getClass());
+		}
+
+		if (source instanceof Map) {
 			// Map
 			for (final Entry<?, ?> e : ((Map<?, ?>) source).entrySet()) {
 				this.set(Convert.toStr(e.getKey()), e.getValue());
@@ -668,7 +677,11 @@ public class JSONObject implements JSON, JSONGetter<String>, Map<String, Object>
 		} else if (BeanUtil.isReadableBean(source.getClass())) {
 			// 普通Bean
 			this.populateMap(source);
+		} else {
+			// 不支持对象类型转换为JSONObject
+			throw new JSONException("Unsupported type [{}] to JSONObject!", source.getClass());
 		}
+
 	}
 
 	/**

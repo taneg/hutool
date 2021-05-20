@@ -10,7 +10,21 @@ import lombok.Data;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.SortedSet;
 
 /**
  * 集合工具类单元测试
@@ -680,5 +694,15 @@ public class CollUtilTest {
 		}
 
 		Assert.assertEquals(0, CollUtil.page(3, 5, objects).size());
+	}
+
+	@Test
+	public void subtractToListTest(){
+		List<Long> list1 = Arrays.asList(1L, 2L, 3L);
+		List<Long> list2 = Arrays.asList(2L, 3L);
+
+		List<Long> result = CollUtil.subtractToList(list1, list2);
+		Assert.assertEquals(1, result.size());
+		Assert.assertEquals(1L, result.get(0), 1);
 	}
 }

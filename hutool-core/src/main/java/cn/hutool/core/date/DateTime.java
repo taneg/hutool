@@ -122,7 +122,7 @@ public class DateTime extends Date {
 	 */
 	public DateTime(Date date) {
 		this(
-				date.getTime(),//
+				date,//
 				(date instanceof DateTime) ? ((DateTime) date).timeZone : TimeZone.getDefault()
 		);
 	}
@@ -135,7 +135,7 @@ public class DateTime extends Date {
 	 * @since 4.1.2
 	 */
 	public DateTime(Date date, TimeZone timeZone) {
-		this(date.getTime(), timeZone);
+		this(ObjectUtil.defaultIfNull(date, new Date()).getTime(), timeZone);
 	}
 
 	/**
@@ -212,6 +212,38 @@ public class DateTime extends Date {
 	}
 
 	/**
+	 * 构造格式：<br>
+	 * <ol>
+	 * <li>yyyy-MM-dd HH:mm:ss</li>
+	 * <li>yyyy/MM/dd HH:mm:ss</li>
+	 * <li>yyyy.MM.dd HH:mm:ss</li>
+	 * <li>yyyy年MM月dd日 HH时mm分ss秒</li>
+	 * <li>yyyy-MM-dd</li>
+	 * <li>yyyy/MM/dd</li>
+	 * <li>yyyy.MM.dd</li>
+	 * <li>HH:mm:ss</li>
+	 * <li>HH时mm分ss秒</li>
+	 * <li>yyyy-MM-dd HH:mm</li>
+	 * <li>yyyy-MM-dd HH:mm:ss.SSS</li>
+	 * <li>yyyyMMddHHmmss</li>
+	 * <li>yyyyMMddHHmmssSSS</li>
+	 * <li>yyyyMMdd</li>
+	 * <li>EEE, dd MMM yyyy HH:mm:ss z</li>
+	 * <li>EEE MMM dd HH:mm:ss zzz yyyy</li>
+	 * <li>yyyy-MM-dd'T'HH:mm:ss'Z'</li>
+	 * <li>yyyy-MM-dd'T'HH:mm:ss.SSS'Z'</li>
+	 * <li>yyyy-MM-dd'T'HH:mm:ssZ</li>
+	 * <li>yyyy-MM-dd'T'HH:mm:ss.SSSZ</li>
+	 * </ol>
+	 *
+	 * @param dateStr Date字符串
+	 * @since 5.6.2
+	 */
+	public DateTime(CharSequence dateStr) {
+		this(DateUtil.parse(dateStr));
+	}
+
+	/**
 	 * 构造
 	 *
 	 * @param dateStr Date字符串
@@ -219,7 +251,7 @@ public class DateTime extends Date {
 	 * @see DatePattern
 	 */
 	public DateTime(CharSequence dateStr, String format) {
-		this(dateStr, new SimpleDateFormat(format));
+		this(dateStr, DateUtil.newSimpleFormat(format));
 	}
 
 	/**
@@ -695,7 +727,7 @@ public class DateTime extends Date {
 	 * @param formatLevel 格式化级别
 	 * @return 相差时长
 	 */
-	public String between(Date date, DateUnit unit, BetweenFormater.Level formatLevel) {
+	public String between(Date date, DateUnit unit, BetweenFormatter.Level formatLevel) {
 		return new DateBetween(this, date).toString(formatLevel);
 	}
 
@@ -895,9 +927,7 @@ public class DateTime extends Date {
 	 */
 	public String toString(TimeZone timeZone) {
 		if (null != timeZone) {
-			final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DatePattern.NORM_DATETIME_PATTERN);
-			simpleDateFormat.setTimeZone(timeZone);
-			return toString(simpleDateFormat);
+			return toString(DateUtil.newSimpleFormat(DatePattern.NORM_DATETIME_PATTERN, null, timeZone));
 		}
 		return toString(DatePattern.NORM_DATETIME_FORMAT);
 	}
@@ -910,9 +940,7 @@ public class DateTime extends Date {
 	 */
 	public String toDateStr() {
 		if (null != this.timeZone) {
-			final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DatePattern.NORM_DATE_PATTERN);
-			simpleDateFormat.setTimeZone(this.timeZone);
-			return toString(simpleDateFormat);
+			return toString(DateUtil.newSimpleFormat(DatePattern.NORM_DATE_PATTERN, null, timeZone));
 		}
 		return toString(DatePattern.NORM_DATE_FORMAT);
 	}
@@ -925,9 +953,7 @@ public class DateTime extends Date {
 	 */
 	public String toTimeStr() {
 		if (null != this.timeZone) {
-			final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DatePattern.NORM_TIME_PATTERN);
-			simpleDateFormat.setTimeZone(this.timeZone);
-			return toString(simpleDateFormat);
+			return toString(DateUtil.newSimpleFormat(DatePattern.NORM_TIME_PATTERN, null, timeZone));
 		}
 		return toString(DatePattern.NORM_TIME_FORMAT);
 	}
@@ -940,9 +966,7 @@ public class DateTime extends Date {
 	 */
 	public String toString(String format) {
 		if (null != this.timeZone) {
-			final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(format);
-			simpleDateFormat.setTimeZone(this.timeZone);
-			return toString(simpleDateFormat);
+			return toString(DateUtil.newSimpleFormat(format, null, timeZone));
 		}
 		return toString(FastDateFormat.getInstance(format));
 	}

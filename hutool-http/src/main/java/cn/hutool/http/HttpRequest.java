@@ -12,7 +12,6 @@ import cn.hutool.core.lang.Assert;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.net.url.UrlBuilder;
 import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.body.MultipartBody;
@@ -157,7 +156,7 @@ public class HttpRequest extends HttpBase<HttpRequest> {
 	 * @param url URL
 	 */
 	public HttpRequest(String url) {
-		this(UrlBuilder.ofHttp(url, CharsetUtil.CHARSET_UTF_8));
+		this(UrlBuilder.ofHttp(url));
 	}
 
 	/**
@@ -1009,6 +1008,17 @@ public class HttpRequest extends HttpBase<HttpRequest> {
 	}
 
 	/**
+	 * 令牌验证，生成的头类似于："Authorization: Bearer XXXXX"，一般用于JWT
+	 *
+	 * @param token 令牌内容
+	 * @return HttpRequest
+	 * @since 5.5.3
+	 */
+	public HttpRequest bearerAuth(String token) {
+		return auth("Bearer " + token);
+	}
+
+	/**
 	 * 验证，简单插入Authorization头
 	 *
 	 * @param content 验证内容
@@ -1053,10 +1063,10 @@ public class HttpRequest extends HttpBase<HttpRequest> {
 
 		this.httpConnection = HttpConnection
 				.create(this.url.toURL(this.urlHandler), this.proxy)//
-				.setMethod(this.method)//
-				.setHttpsInfo(this.hostnameVerifier, this.ssf)//
 				.setConnectTimeout(this.connectionTimeout)//
 				.setReadTimeout(this.readTimeout)//
+				.setMethod(this.method)//
+				.setHttpsInfo(this.hostnameVerifier, this.ssf)//
 				// 定义转发
 				.setInstanceFollowRedirects(this.maxRedirectCount > 0)
 				// 流方式上传数据
@@ -1094,9 +1104,9 @@ public class HttpRequest extends HttpBase<HttpRequest> {
 	}
 
 	/**
-	 * 调用转发，如果需要转发返回转发结果，否则返回<code>null</code>
+	 * 调用转发，如果需要转发返回转发结果，否则返回{@code null}
 	 *
-	 * @return {@link HttpResponse}，无转发返回 <code>null</code>
+	 * @return {@link HttpResponse}，无转发返回 {@code null}
 	 */
 	private HttpResponse sendRedirectIfPossible() {
 		if (this.maxRedirectCount < 1) {
@@ -1116,7 +1126,7 @@ public class HttpRequest extends HttpBase<HttpRequest> {
 			}
 
 			if (responseCode != HttpURLConnection.HTTP_OK) {
-				if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_SEE_OTHER) {
+				if (HttpStatus.isRedirected(responseCode)) {
 					setUrl(httpConnection.header(Header.LOCATION));
 					if (redirectCount < this.maxRedirectCount) {
 						redirectCount++;

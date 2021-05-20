@@ -216,7 +216,6 @@ public class JSONObjectTest {
 	@Test
 	public void toBeanWithNullTest() {
 		String jsonStr = "{'data':{'userName':'ak','password': null}}";
-		Console.log(JSONUtil.parseObj(jsonStr));
 		UserWithMap user = JSONUtil.toBean(JSONUtil.parseObj(jsonStr), UserWithMap.class);
 		Assert.assertTrue(user.getData().containsKey("password"));
 	}
@@ -518,6 +517,33 @@ public class JSONObjectTest {
 		final Map.Entry<String, String> next = entries.iterator().next();
 
 		final JSONObject jsonObject = JSONUtil.parseObj(next);
-		Console.log(jsonObject);
+		Assert.assertEquals("{\"test\":\"testValue\"}", jsonObject.toString());
+	}
+
+	@Test(expected = JSONException.class)
+	public void createJSONObjectTest(){
+		// 集合类不支持转为JSONObject
+		new JSONObject(new JSONArray(), JSONConfig.create());
+	}
+
+	@Test
+	public void floatTest(){
+		Map<String, Object> map = new HashMap<>();
+		map.put("c", 2.0F);
+
+		final String s = JSONUtil.toJsonStr(map);
+		Assert.assertEquals("{\"c\":2}", s);
+	}
+
+	@Test
+	public void accumulateTest(){
+		final JSONObject jsonObject = JSONUtil.createObj().accumulate("key1", "value1");
+		Assert.assertEquals("{\"key1\":\"value1\"}", jsonObject.toString());
+
+		jsonObject.accumulate("key1", "value2");
+		Assert.assertEquals("{\"key1\":[\"value1\",\"value2\"]}", jsonObject.toString());
+
+		jsonObject.accumulate("key1", "value3");
+		Assert.assertEquals("{\"key1\":[\"value1\",\"value2\",\"value3\"]}", jsonObject.toString());
 	}
 }
