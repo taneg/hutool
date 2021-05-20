@@ -21,6 +21,7 @@ import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.TypeUtil;
 
+import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
@@ -2916,7 +2917,7 @@ public class CollUtil {
 	 * @author Looly
 	 */
 	@FunctionalInterface
-	public interface Consumer<T> {
+	public interface Consumer<T> extends Serializable {
 		/**
 		 * 接受并处理一个参数
 		 *
@@ -2934,7 +2935,7 @@ public class CollUtil {
 	 * @author Looly
 	 */
 	@FunctionalInterface
-	public interface KVConsumer<K, V> {
+	public interface KVConsumer<K, V> extends Serializable{
 		/**
 		 * 接受并处理一对参数
 		 *
@@ -2987,5 +2988,26 @@ public class CollUtil {
 			throw new IllegalArgumentException("Unsupported object type: " + object.getClass().getName());
 		}
 		return total;
+	}
+
+	/**
+	 * 判断两个{@link Collection} 是否元素和顺序相同，返回{@code true}的条件是：
+	 * <ul>
+	 *     <li>两个{@link Collection}必须长度相同</li>
+	 *     <li>两个{@link Collection}元素相同index的对象必须equals，满足{@link Objects#equals(Object, Object)}</li>
+	 * </ul>
+	 * 此方法来自Apache-Commons-Collections4。
+	 *
+	 * @param list1 列表1
+	 * @param list2 列表2
+	 * @return 是否相同
+	 * @since 5.6.0
+	 */
+	public static boolean isEqualList(final Collection<?> list1, final Collection<?> list2) {
+		if (list1 == null || list2 == null || list1.size() != list2.size()) {
+			return false;
+		}
+
+		return IterUtil.isEqualList(list1, list2);
 	}
 }

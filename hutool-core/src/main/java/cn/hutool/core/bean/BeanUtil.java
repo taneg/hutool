@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Bean工具类
@@ -544,6 +545,9 @@ public class BeanUtil {
 	 * @since 5.2.4
 	 */
 	public static <T> T toBean(Object source, Class<T> clazz, CopyOptions options) {
+		if(null == source){
+			return null;
+		}
 		final T target = ReflectUtil.newInstanceIfPossible(clazz);
 		copyProperties(source, target, options);
 		return target;
@@ -559,6 +563,9 @@ public class BeanUtil {
 	 * @return Bean
 	 */
 	public static <T> T toBean(Class<T> beanClass, ValueProvider<String> valueProvider, CopyOptions copyOptions) {
+		if (null == beanClass || null == valueProvider) {
+			return null;
+		}
 		return fillBean(ReflectUtil.newInstanceIfPossible(beanClass), valueProvider, copyOptions);
 	}
 
@@ -600,6 +607,9 @@ public class BeanUtil {
 	 * @return Map
 	 */
 	public static Map<String, Object> beanToMap(Object bean, boolean isToUnderlineCase, boolean ignoreNullValue) {
+		if (null == bean) {
+			return null;
+		}
 		return beanToMap(bean, new LinkedHashMap<>(), isToUnderlineCase, ignoreNullValue);
 	}
 
@@ -614,7 +624,7 @@ public class BeanUtil {
 	 * @since 3.2.3
 	 */
 	public static Map<String, Object> beanToMap(Object bean, Map<String, Object> targetMap, final boolean isToUnderlineCase, boolean ignoreNullValue) {
-		if (bean == null) {
+		if (null == bean) {
 			return null;
 		}
 
@@ -639,7 +649,7 @@ public class BeanUtil {
 	 * @since 4.0.5
 	 */
 	public static Map<String, Object> beanToMap(Object bean, Map<String, Object> targetMap, boolean ignoreNullValue, Editor<String> keyEditor) {
-		if (bean == null) {
+		if (null == bean) {
 			return null;
 		}
 
@@ -706,6 +716,25 @@ public class BeanUtil {
 	}
 
 	/**
+	 * 复制集合中的Bean属性<br>
+	 * 此方法遍历集合中每个Bean，复制其属性后加入一个新的{@link List}中。
+	 *
+	 * @param collection 原Bean集合
+	 * @param targetType 目标Bean类型
+	 * @param copyOptions 拷贝选项
+	 * @param <T> Bean类型
+	 * @return 复制后的List
+	 * @since 5.6.4
+	 */
+	public static <T> List<T> copyToList(Collection<?> collection, Class<T> targetType, CopyOptions copyOptions){
+		return collection.stream().map((source)->{
+			final T target = ReflectUtil.newInstanceIfPossible(targetType);
+			copyProperties(source, target, copyOptions);
+			return target;
+		}).collect(Collectors.toList());
+	}
+
+	/**
 	 * 给定的Bean的类名是否匹配指定类名字符串<br>
 	 * 如果isSimple为{@code false}，则只匹配类名而忽略包名，例如：cn.hutool.TestEntity只匹配TestEntity<br>
 	 * 如果isSimple为{@code true}，则匹配包括包名的全类名，例如：cn.hutool.TestEntity匹配cn.hutool.TestEntity
@@ -721,6 +750,31 @@ public class BeanUtil {
 	}
 
 	/**
+	 * 编辑Bean的字段，static字段不会处理<br>
+	 * 例如需要对指定的字段做判空操作、null转""操作等等。
+	 *
+	 * @param bean bean
+	 * @param editor 编辑器函数
+	 * @param <T> 被编辑的Bean类型
+	 * @return bean
+	 * @since 5.6.4
+	 */
+	public static <T> T edit(T bean, Editor<Field> editor){
+		if (bean == null) {
+			return null;
+		}
+
+		final Field[] fields = ReflectUtil.getFields(bean.getClass());
+		for (Field field : fields) {
+			if (ModifierUtil.isStatic(field)) {
+				continue;
+			}
+			editor.edit(field);
+		}
+		return bean;
+	}
+
+	/**
 	 * 把Bean里面的String属性做trim操作。此方法直接对传入的Bean做修改。
 	 * <p>
 	 * 通常bean直接用来绑定页面的input，用户的输入可能首尾存在空格，通常保存数据库前需要把首尾空格去掉
@@ -731,18 +785,10 @@ public class BeanUtil {
 	 * @return 处理后的Bean对象
 	 */
 	public static <T> T trimStrFields(T bean, String... ignoreFields) {
-		if (bean == null) {
-			return null;
-		}
-
-		final Field[] fields = ReflectUtil.getFields(bean.getClass());
-		for (Field field : fields) {
-			if (ModifierUtil.isStatic(field)) {
-				continue;
-			}
+		return edit(bean, (field)->{
 			if (ignoreFields != null && ArrayUtil.containsIgnoreCase(ignoreFields, field.getName())) {
 				// 不处理忽略的Fields
-				continue;
+				return field;
 			}
 			if (String.class.equals(field.getType())) {
 				// 只有String的Field才处理
@@ -755,9 +801,8 @@ public class BeanUtil {
 					}
 				}
 			}
-		}
-
-		return bean;
+			return field;
+		});
 	}
 
 	/**
@@ -820,4 +865,5 @@ public class BeanUtil {
 		}
 		return false;
 	}
+
 }

@@ -1054,7 +1054,35 @@ public class NumberUtil {
 	 * @since 5.1.6
 	 */
 	public static String decimalFormat(String pattern, Object value) {
-		return new DecimalFormat(pattern).format(value);
+		return decimalFormat(pattern, value, null);
+	}
+
+	/**
+	 * 格式化double<br>
+	 * 对 {@link DecimalFormat} 做封装<br>
+	 *
+	 * @param pattern 格式 格式中主要以 # 和 0 两种占位符号来指定数字长度。0 表示如果位数不足则以 0 填充，# 表示只要有可能就把数字拉上这个位置。<br>
+	 *                <ul>
+	 *                <li>0 =》 取一位整数</li>
+	 *                <li>0.00 =》 取一位整数和两位小数</li>
+	 *                <li>00.000 =》 取两位整数和三位小数</li>
+	 *                <li># =》 取所有整数部分</li>
+	 *                <li>#.##% =》 以百分比方式计数，并取两位小数</li>
+	 *                <li>#.#####E0 =》 显示为科学计数法，并取五位小数</li>
+	 *                <li>,### =》 每三位以逗号进行分隔，例如：299,792,458</li>
+	 *                <li>光速大小为每秒,###米 =》 将格式嵌入文本</li>
+	 *                </ul>
+	 * @param value   值，支持BigDecimal、BigInteger、Number等类型
+	 * @param roundingMode 保留小数的方式枚举
+	 * @return 格式化后的值
+	 * @since 5.6.5
+	 */
+	public static String decimalFormat(String pattern, Object value, RoundingMode roundingMode) {
+		final DecimalFormat decimalFormat = new DecimalFormat(pattern);
+		if(null != roundingMode){
+			decimalFormat.setRoundingMode(roundingMode);
+		}
+		return decimalFormat.format(roundingMode);
 	}
 
 	/**
@@ -1294,8 +1322,8 @@ public class NumberUtil {
 			end = temp;
 		}
 		// 加入逻辑判断，确保begin<end并且size不能大于该表示范围
-		Assert.isTrue((end - begin) > size, "Size is larger than range between begin and end!");
-		Assert.isTrue(seed.length > size, "Size is larger than seed size!");
+		Assert.isTrue((end - begin) >= size, "Size is larger than range between begin and end!");
+		Assert.isTrue(seed.length >= size, "Size is larger than seed size!");
 
 		final int[] ranArr = new int[size];
 		// 数量你可以自己定义。
@@ -1429,9 +1457,61 @@ public class NumberUtil {
 	// ------------------------------------------------------------------------------------------- others
 
 	/**
+	 * 计算阶乘
+	 * <p>
+	 * n! = n * (n-1) * ... * 2 * 1
+	 * </p>
+	 *
+	 * @param n 阶乘起始
+	 * @return 结果
+	 * @since 5.6.0
+	 */
+	public static BigInteger factorial(BigInteger n) {
+		if(n.equals(BigInteger.ZERO)){
+			return BigInteger.ONE;
+		}
+		return factorial(n, BigInteger.ZERO);
+	}
+
+	/**
 	 * 计算范围阶乘
 	 * <p>
-	 * factorial(start, end) = start * (start - 1) * ... * (end - 1)
+	 * factorial(start, end) = start * (start - 1) * ... * (end + 1)
+	 * </p>
+	 *
+	 * @param start 阶乘起始（包含）
+	 * @param end   阶乘结束，必须小于起始（不包括）
+	 * @return 结果
+	 * @since 5.6.0
+	 */
+	public static BigInteger factorial(BigInteger start, BigInteger end) {
+		Assert.notNull(start, "Factorial start must be not null!");
+		Assert.notNull(end, "Factorial end must be not null!");
+		if(start.compareTo(BigInteger.ZERO) < 0 || end.compareTo(BigInteger.ZERO) < 0){
+			throw new IllegalArgumentException(StrUtil.format("Factorial start and end both must be > 0, but got start={}, end={}", start, end));
+		}
+
+		if (start.equals(BigInteger.ZERO)){
+			start = BigInteger.ONE;
+		}
+
+		if(end.compareTo(BigInteger.ONE) < 0){
+			end = BigInteger.ONE;
+		}
+
+		BigInteger result = start;
+		end = end.add(BigInteger.ONE);
+		while(start.compareTo(end) > 0) {
+			start = start.subtract(BigInteger.ONE);
+			result = result.multiply(start);
+		}
+		return result;
+	}
+
+	/**
+	 * 计算范围阶乘
+	 * <p>
+	 * factorial(start, end) = start * (start - 1) * ... * (end + 1)
 	 * </p>
 	 *
 	 * @param start 阶乘起始（包含）
